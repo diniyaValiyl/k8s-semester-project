@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Карта клиник</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+    <script th:src="@{/js/map.js}"></script>
+    <style>
+        #map { height: 500px; width: 100%; border-radius: 12px; margin-bottom: 20px; }
+        .mode-selector { text-align: center; margin: 15px 0; }
+        .mode-btn { padding: 8px 16px; margin: 0 5px; border: none; border-radius: 8px; cursor: pointer; background: #4caf50; color: white; }
+        .mode-btn.active { background: #2e7d32; }
+        .mode-btn.location { background: #2196f3; }
+        .address-input-area { text-align: center; margin: 15px 0; padding: 10px; background: white; border-radius: 8px; }
+        .address-input { padding: 8px; width: 300px; border: 1px solid #c8e6c9; border-radius: 8px; font-size: 14px; }
+        .address-btn { padding: 8px 16px; background: #4caf50; color: white; border: none; border-radius: 8px; cursor: pointer; margin-left: 10px; }
+        .address-btn:hover { background: #2e7d32; }
+        .info-panel { background: white; padding: 15px; border-radius: 12px; margin-top: 20px; max-height: 300px; overflow-y: auto; }
+        .clinic-item { padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; }
+        .clinic-item:hover { background: #e8f5e9; }
+        .clinic-name { font-weight: bold; color: #2e7d32; }
+        .distance { color: #4caf50; font-size: 14px; }
+        .route-info { margin-top: 10px; padding: 10px; background: #e8f5e9; border-radius: 8px; display: none; }
+        .clear-route-btn { background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-top: 5px; }
+        .loading-indicator { display: inline-block; width: 16px; height: 16px; border: 2px solid #4caf50; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div class="mode-selector">
+        <button id="btnFoot" class="mode-btn active">Пешком</button>
+        <button id="btnDriving" class="mode-btn">На машине</button>
+        <button id="getLocationBtn" class="mode-btn location">Определить</button>
+    </div>
+
+    <div class="address-input-area">
+        <input type="text" id="addressInput" class="address-input" placeholder="Введите адрес">
+        <button id="searchAddressBtn" class="address-btn">Найти</button>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="info-panel">
+        <h3>Ближайшие клиники</h3>
+        <div id="clinicList">Нажмите "Определить" или введите адрес</div>
+        <div id="routeInfo" class="route-info"></div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

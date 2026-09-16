@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Клиники</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script th:src="@{/js/search.js}" defer></script>
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <form th:action="@{/clinics/search}" method="get" class="search-form">
+        <input type="text" name="query" placeholder="Поиск клиник по названию" th:value="${query}">
+        <button type="submit" class="btn">Найти</button>
+    </form>
+
+    <div class="search-form" style="margin-top: 10px;">
+        <input type="text" id="ajaxDoctorSearch" placeholder="Поиск врачей по специализации">
+    </div>
+    <div id="doctorSearchResults"></div>
+
+    <div class="clinics-grid">
+        <div th:each="clinic : ${clinics}" class="clinic-card">
+            <img th:if="${clinic.logoUrl}" th:src="${clinic.logoUrl}" class="clinic-logo" alt="logo">
+            <div th:unless="${clinic.logoUrl}" class="doctor-photo-placeholder" style="width:80px; height:80px; font-size:30px;">Д</div>
+            <h3><a th:href="@{/clinics/{id}(id=${clinic.id})}" th:text="${clinic.name}"></a></h3>
+            <p th:text="${clinic.address}"></p>
+            <p th:if="${clinic.phone}" th:text="${clinic.phone}"></p>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Врачи клиники</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div th:if="${success}" class="success-message" th:text="${success}"></div>
+    <div th:if="${error}" class="error-message" th:text="${error}"></div>
+
+    <div style="margin: 20px 0;">
+        <a th:href="@{/clinic-admin/doctors/create}" class="btn">Добавить врача</a>
+        <a th:href="@{/clinic-admin/dashboard}" class="btn-cancel">Назад</a>
+    </div>
+
+    <h2>Врачи клиники: <span th:text="${clinic.name}"></span></h2>
+
+    <div th:if="${doctors.empty}" class="empty-state">
+        <p>В этой клинике пока нет врачей</p>
+    </div>
+
+    <div th:unless="${doctors.empty}" class="doctors-grid">
+        <div th:each="doctor : ${doctors}" class="doctor-card">
+            <img th:if="${doctor.photoUrl}" th:src="${doctor.photoUrl}" class="doctor-photo" alt="doctor">
+            <div th:unless="${doctor.photoUrl}" class="doctor-photo-placeholder">Д</div>
+            <h3 th:text="${doctor.name}"></h3>
+            <p th:text="${doctor.specialization}"></p>
+            <p th:if="${doctor.experience}" th:text="${doctor.experience} + ' лет опыта'"></p>
+            <div style="margin-top: 10px;">
+                <a th:href="@{/clinic-admin/doctors/edit/{id}(id=${doctor.id})}" class="btn-sm">Редактировать</a>
+                <a th:href="@{/clinic-admin/doctors/delete/{id}(id=${doctor.id})}"
+                   class="btn-sm"
+                   onclick="return confirm('Удалить врача из клиники?')">Удалить</a>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Админ-панель</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div th:if="${error}" class="error-message" th:text="${error}"></div>
+
+    <h2>Административная панель</h2>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number" th:text="${stats.totalClinics}">0</div>
+            <div class="stat-label">Клиник</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" th:text="${stats.totalDoctors}">0</div>
+            <div class="stat-label">Врачей</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" th:text="${stats.totalAppointments}">0</div>
+            <div class="stat-label">Всего записей</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" th:text="${stats.pendingAppointments}">0</div>
+            <div class="stat-label">Ожидают</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" th:text="${stats.todayAppointments}">0</div>
+            <div class="stat-label">Записей на сегодня</div>
+        </div>
+    </div>
+
+    <div class="admin-menu">
+        <a href="/admin/appointments" class="admin-menu-item">
+            <div class="admin-menu-title">Записи</div>
+            <div class="admin-menu-desc">Просмотр и управление</div>
+        </a>
+        <a href="/admin/clinics" class="admin-menu-item">
+            <div class="admin-menu-title">Клиники</div>
+            <div class="admin-menu-desc">Добавление и редактирование</div>
+        </a>
+        <a href="/admin/doctors" class="admin-menu-item">
+            <div class="admin-menu-title">Врачи</div>
+            <div class="admin-menu-desc">Добавление и редактирование</div>
+        </a>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

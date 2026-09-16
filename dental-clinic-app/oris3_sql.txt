@@ -1,0 +1,391 @@
+до внесения конечного вида
+
+-- 1. СОЗДАНИЕ ТАБЛИЦ
+
+-- Таблица пользователей (только PATIENT и ADMIN)
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('PATIENT', 'ADMIN')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица клиник (с рабочими часами)
+CREATE TABLE clinics (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    address VARCHAR(300) NOT NULL,
+    phone VARCHAR(50),
+    hours VARCHAR(200),
+    site_url VARCHAR(200),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    logo_url VARCHAR(500),
+    work_start TIME DEFAULT '09:00',
+    work_end TIME DEFAULT '20:00',
+    work_days VARCHAR(50) DEFAULT 'MON,TUE,WED,THU,FRI',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица врачей
+CREATE TABLE doctors (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    specialization VARCHAR(200),
+    experience INTEGER,
+    education TEXT,
+    photo_url VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Связь врачей с клиниками (многие ко многим)
+CREATE TABLE clinic_doctors (
+    clinic_id BIGINT NOT NULL,
+    doctor_id BIGINT NOT NULL,
+    PRIMARY KEY (clinic_id, doctor_id),
+    FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
+);
+
+-- Таблица услуг
+CREATE TABLE dental_services (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Связь клиник с услугами (с ценой)
+CREATE TABLE clinic_services (
+    clinic_id BIGINT NOT NULL,
+    service_id BIGINT NOT NULL,
+    price DECIMAL(10, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (clinic_id, service_id),
+    FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE,
+    FOREIGN KEY (service_id) REFERENCES dental_services(id) ON DELETE CASCADE
+);
+
+-- Таблица отзывов
+CREATE TABLE reviews (
+    id BIGSERIAL PRIMARY KEY,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    patient_id BIGINT NOT NULL,
+    clinic_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE
+);
+
+-- Таблица записей на приём
+CREATE TABLE appointments (
+    id BIGSERIAL PRIMARY KEY,
+    date_time TIMESTAMP NOT NULL,
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED')),
+    patient_id BIGINT NOT NULL,
+    doctor_id BIGINT NOT NULL,
+    clinic_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+    FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE
+);
+
+-- Таблица медицинских карт
+CREATE TABLE medical_records (
+    id BIGSERIAL PRIMARY KEY,
+    diagnosis VARCHAR(300),
+    notes TEXT,
+    patient_id BIGINT NOT NULL,
+    doctor_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
+);
+
+-- Избранные клиники пользователей
+CREATE TABLE favorite_clinics (
+    user_id BIGINT NOT NULL,
+    clinic_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, clinic_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE
+);
+
+-- 2. ЗАПОЛНЕНИЕ КЛИНИК
+
+INSERT INTO clinics (id, name, address, phone, hours, site_url, latitude, longitude, logo_url, work_start, work_end, work_days) VALUES
+(1, 'Вильдан', 'просп. Ямашева, 43', '+7 (917) 909-17-17', 'Пн–Пт 08:00–20:00, Сб 08:00–14:00, Вс выходной', NULL, 55.826276, 49.117832, '/images/clinics/vildan.jpg', '08:00', '20:00', 'MON,TUE,WED,THU,FRI,SAT'),
+(2, 'Зубная лечебница', 'просп. Альберта Камалеева, 12', '+7 (843) 291-63-41', 'Пн–Пт 08:00–20:00, Сб–Вс 09:00–15:00', 'https://zubnal.ru', 55.789892, 49.183525, '/images/clinics/zubnaya.jpg', '08:00', '20:00', 'MON,TUE,WED,THU,FRI,SAT,SUN'),
+(3, 'Дентиатр', 'ул. Некрасова, 7А', '+7 (966) 250-61-61', 'Пн–Пт 08:00–20:00, Сб 09:00–15:00, Вс выходной', 'https://dentiatr.ru', 55.788788, 49.124713, '/images/clinics/dentiatr.jpg', '08:00', '20:00', 'MON,TUE,WED,THU,FRI,SAT'),
+(4, 'Хаят смайл', 'ул. Галактионова, 3', 'запись через сайт', 'Пн–Пт 09:00–20:00, Сб 09:00–18:00, Вс выходной', NULL, 55.793232, 49.126626, '/images/clinics/hayat.jpg', '09:00', '18:00', 'MON,TUE,WED,THU,FRI,SAT'),
+(5, 'Рокада Мед', 'Петербургская ул., 26, этаж 2', '+7 (843) 208-54-48', 'Пн–Пт 08:00–20:00, Сб 09:00–16:00, Вс выходной', 'https://clinic.rocadamed.ru', 55.784496, 49.126554, '/images/clinics/rocada.jpg', '08:00', '16:00', 'MON,TUE,WED,THU,FRI,SAT'),
+(6, 'КГМУ Стоматологическая поликлиника', 'ул. Бутлерова, 16, этаж 1', '+7 (843) 236-14-98', 'Пн–Пт 08:00–20:00, Сб 08:00–14:00, Вс выходной', 'https://stomkgmu.ru', 55.787523, 49.130228, '/images/clinics/kgmu.jpg', '08:00', '14:00', 'MON,TUE,WED,THU,FRI,SAT'),
+(7, 'Булгар-Стом (центр)', 'ул. Право-Булачная, 37', '8 (843) 292-00-99', 'Пн–Сб 09:00–20:00, Вс выходной', 'https://bulgar-stom.ru', 55.789563, 49.111723, '/images/clinics/bulgar.jpg', '09:00', '20:00', 'MON,TUE,WED,THU,FRI,SAT'),
+(8, 'Булгар-Стом (Фэмили Стом)', 'ул. Рауиса Гареева, 92', '8 (960) 040-88-88', 'Пн–Сб 09:00–20:00, Вс выходной', 'https://bulgar-stom.ru', 55.722416, 49.171506, '/images/clinics/bulgar2.jpg', '09:00', '20:00', 'MON,TUE,WED,THU,FRI,SAT'),
+(9, 'Занифдент', 'Повстанческая ул., 12', '+7 (987) 225-57-22', 'ежедневно 09:00–20:00', 'https://zanifdent-med.obiz.ru', 55.818437, 49.063331, '/images/clinics/zanif.jpg', '09:00', '20:00', 'MON,TUE,WED,THU,FRI,SAT,SUN'),
+(10, 'Вайт Бьюти', 'ул. Аделя Кутуя, 44А', '+7 (930) 333-41-71', 'ежедневно 09:00–21:00', 'https://whitebeauty-stom.ru', 55.826256, 49.111184, '/images/clinics/whitebeauty.jpg', '09:00', '21:00', 'MON,TUE,WED,THU,FRI,SAT,SUN'),
+(11, 'ДИН Дентал Клиник', 'ул. Космонавтов, 39', '+7 (901) 143-27-39', 'Пн–Пт 08:00–20:00, Сб 09:00–15:00, Вс выходной', 'https://din-dental-clinic-med.ru', 55.799887, 49.192374, '/images/clinics/din.jpg', '08:00', '15:00', 'MON,TUE,WED,THU,FRI,SAT');
+
+-- 3. ЗАПОЛНЕНИЕ ВРАЧЕЙ
+
+INSERT INTO doctors (id, name, specialization, experience, education, photo_url) VALUES
+-- Вильдан (1-6)
+(1, 'Валиуллина Райхана Расиховна', 'Стоматолог-терапевт', 6, 'Лечение кариеса, пульпита, периодонтита, эстетическая реставрация, отбеливание зубов', '/images/doctors/raikhana.jpg'),
+(2, 'Эргашев Хустнудин Оралович', 'Стоматолог-хирург, ортопед, терапевт', 13, 'Полный спектр стоматологических услуг', '/images/doctors/ergashev.jpg'),
+(3, 'Вильданов Рашид Фасахович', 'Стоматолог-ортопед, терапевт', 36, 'Директор клиники', '/images/doctors/rashid.jpg'),
+(4, 'Вильданова Аделя Рашидовна', 'Стоматолог-терапевт', 3, 'Стоматолог-терапевт', '/images/doctors/adelya.jpg'),
+(5, 'Вильданова Эмилия Рашидовна', 'Стоматолог-ортопед, терапевт', 8, 'Заместитель директора', '/images/doctors/emilia.jpg'),
+(6, 'Рафф Алла Ибрагимовна', 'Стоматолог-ортодонт', 16, 'Исправление прикуса, брекет-системы', '/images/doctors/raff.jpg'),
+
+-- Зубная лечебница (7-10)
+(7, 'Хабиров Камиль Анзяпович', 'Хирург-имплантолог, ортопед', NULL, 'Генеральный директор', '/images/doctors/khabirov.jpg'),
+(8, 'Загидуллина Алина Александровна', 'Детский стоматолог, гигиенист, терапевт', NULL, 'Детская стоматология', '/images/doctors/zagidullina.jpg'),
+(9, 'Хабиров Эмиль Камилевич', 'Стоматолог-ортопед, имплантолог', NULL, 'Исполнительный директор', '/images/doctors/khabirov2.jpg'),
+(10, 'Смирнова Алена Андреевна', 'Ортодонт, детский стоматолог', NULL, 'Ортодонтия', '/images/doctors/smirnova.jpg'),
+
+-- Дентиатр (11-14)
+(11, 'Ахметова Диляра Мукатдисовна', 'Стоматолог-ортопед, гнатолог, пародонтолог', 23, 'Директор, главный врач, к.м.н., Заслуженный врач РТ', '/images/doctors/akhmetova.jpg'),
+(12, 'Зубкова Елена Эдуардовна', 'Стоматолог-ортодонт, ортопед', 40, 'Врач высшей категории, доцент, к.м.н.', '/images/doctors/zubkova.jpg'),
+(13, 'Мансуров Булат Фаридович', 'Стоматолог-хирург', 9, 'Хирургическая стоматология', '/images/doctors/mansurov.jpg'),
+(14, 'Салимзянова Диляра Наилевна', 'Стоматолог-терапевт-реставратор', 30, 'Эстетическая реставрация', '/images/doctors/salimzyanova.jpg'),
+
+-- Хаят смайл (15-18)
+(15, 'Рамазанов Магомедрасул Рабаданович', 'Стоматолог-имплантолог, хирург, ортопед', 21, 'Основатель и главный врач', '/images/doctors/ramazanov.jpg'),
+(16, 'Мусина Индира Ивановна', 'Стоматолог-терапевт, детский стоматолог', 17, 'Терапия и детская стоматология', '/images/doctors/musina.jpg'),
+(17, 'Токаев Нурлан Каржаубаевич', 'Челюстно-лицевой хирург, стоматолог-хирург', 4, 'Челюстно-лицевая хирургия', '/images/doctors/tokaev.jpg'),
+(18, 'Ахметов Раис Эмирзянович', 'Стоматолог-ортопед, терапевт', 16, 'Ведущий специалист по ортопедии', '/images/doctors/akhmetov.jpg'),
+
+-- Рокада Мед (19-22)
+(19, 'Бутаева Зарина Ризвановна', 'Врач-стоматолог-терапевт', 9, 'КГМУ 2015, сертификат до 2028', '/images/doctors/butaeva.jpg'),
+(20, 'Хусаенова Гульнара Ильдаровна', 'Врач-стоматолог детский', 8, 'КГМУ 2016', '/images/doctors/khuseinova.jpg'),
+(21, 'Савченко Марина Витальевна', 'Врач-стоматолог-ортодонт', 21, 'КГМУ 2003', '/images/doctors/savchenko.jpg'),
+(22, 'Шакиров Эдуард Юрьевич', 'Врач-стоматолог-ортопед, хирург', 6, 'КГМУ 2018, две специализации', '/images/doctors/shakirov.jpg'),
+
+-- КГМУ (23-26)
+(23, 'Серякова Галина Евгеньевна', 'Врач-стоматолог-терапевт высшей категории', 39, 'Высшая категория', '/images/doctors/seryakova.jpg'),
+(24, 'Галиев Илгизар Мансурович', 'Врач-стоматолог-хирург', 31, 'КГМУ 1993', '/images/doctors/galiev.jpg'),
+(25, 'Салеева Гульшат Тауфиковна', 'Врач-стоматолог-ортопед высшей категории', 34, 'д.м.н., профессор, главный врач', '/images/doctors/saleeva.jpg'),
+(26, 'Абдуллина Зульфия Вафовна', 'Врач-стоматолог-ортодонт высшей категории', 46, 'КГМУ 1978', '/images/doctors/abdullina.jpg'),
+
+-- Булгар-Стом (27-30)
+(27, 'Бедертдинов Башир Нуртдинович', 'Стоматолог-ортопед', NULL, 'Ортопедическая стоматология', '/images/doctors/bedertdinov.jpg'),
+(28, 'Маяков Олег Александрович', 'Стоматолог-хирург', NULL, 'Хирургическая стоматология', '/images/doctors/mayakov.jpg'),
+(29, 'Мередова Алсу Язгельдиевна', 'Стоматолог-терапевт', NULL, 'Терапевтическая стоматология', '/images/doctors/meredova.jpg'),
+(30, 'Файзуллин Эмиль Айдарович', 'Стоматолог-хирург', NULL, 'Хирургическая стоматология', '/images/doctors/fayzullin.jpg'),
+
+-- Занифдент (31-34)
+(31, 'Халитов Заниф Марварович', 'Стоматолог-ортопед, хирург, имплантолог', NULL, 'Ортопедия, хирургия, имплантология', '/images/doctors/khalitov.jpg'),
+(32, 'Комарова Роза Константиновна', 'Стоматолог-терапевт', 20, 'Терапевтическая стоматология', '/images/doctors/komarova.jpg'),
+(33, 'Ахунзянов Ленар Ильхамович', 'Стоматолог-терапевт, ортопед', NULL, 'Высшая категория', '/images/doctors/akhunzyanov.jpg'),
+(34, 'Акаев Николай Алексеевич', 'Стоматолог-ортопед', NULL, 'Ортопедическая стоматология', '/images/doctors/akaev.jpg'),
+
+-- Вайт Бьюти (35-36)
+(35, 'Галеев Азат Рафикович', 'Хирург-имплантолог, челюстно-лицевой хирург', 9, 'ТОП-25 докторов Татарстана, более 5000 имплантов', '/images/doctors/galeyev.jpg'),
+(36, 'Аль-Хазаали Раафат Моханад', 'Хирург-имплантолог, челюстно-лицевой хирург', 5, 'All-on-4, мгновенная нагрузка', '/images/doctors/alhazaali.jpg'),
+
+-- ДИН Дентал Клиник (37-40)
+(37, 'Мушарапов Асхат Рустэмович', 'Стоматолог-имплантолог, хирург', 10, 'Имплантология, хирургия', '/images/doctors/musharapov.jpg'),
+(38, 'Мушарапова Фарида Минегалиевна', 'Стоматолог-ортопед', 39, 'Высшая категория', '/images/doctors/musharapova.jpg'),
+(39, 'Зиннурова Саида Мансуровна', 'Стоматолог-хирург', 39, 'Хирургическая стоматология', '/images/doctors/zinnurova.jpg'),
+(40, 'Салимуллина Ильвира Ренатовна', 'Ортодонт, терапевт', 31, 'Виниры, брекеты, лечение прикуса', '/images/doctors/salimullina.jpg');
+
+-- 4. СВЯЗЬ ВРАЧЕЙ С КЛИНИКАМИ
+
+INSERT INTO clinic_doctors (clinic_id, doctor_id) VALUES
+-- Вильдан (1) - врачи 1-6
+(1,1), (1,2), (1,3), (1,4), (1,5), (1,6),
+
+-- Зубная лечебница (2) - врачи 7-10
+(2,7), (2,8), (2,9), (2,10),
+
+-- Дентиатр (3) - врачи 11-14
+(3,11), (3,12), (3,13), (3,14),
+
+-- Хаят смайл (4) - врачи 15-18
+(4,15), (4,16), (4,17), (4,18),
+
+-- Рокада Мед (5) - врачи 19-22
+(5,19), (5,20), (5,21), (5,22),
+
+-- КГМУ (6) - врачи 23-26
+(6,23), (6,24), (6,25), (6,26),
+
+-- Булгар-Стом центр (7) - врачи 27-30
+(7,27), (7,28), (7,29), (7,30),
+
+-- Булгар-Стом Фэмили Стом (8) - врачи 27-30
+(8,27), (8,28), (8,29), (8,30),
+
+-- Занифдент (9) - врачи 31-34
+(9,31), (9,32), (9,33), (9,34),
+
+-- Вайт Бьюти (10) - врачи 35-36
+(10,35), (10,36),
+
+-- ДИН Дентал Клиник (11) - врачи 37-40
+(11,37), (11,38), (11,39), (11,40);
+
+-- 5. ЗАПОЛНЕНИЕ УСЛУГ
+
+INSERT INTO dental_services (id, name, description, price) VALUES
+(1, 'Консультация стоматолога первичная', 'Осмотр, консультация, составление плана лечения', NULL),
+(2, 'Лечение кариеса', 'Лечение среднего кариеса', NULL),
+(3, 'Лечение пульпита', 'Эндодонтическое лечение', NULL),
+(4, 'Удаление зуба простое', 'Экстракция зуба', NULL),
+(5, 'Удаление зуба сложное', 'Удаление ретинированного зуба, зуба мудрости', NULL),
+(6, 'Профессиональная гигиена', 'Ультразвуковая чистка, AirFlow', NULL),
+(7, 'Металлокерамическая коронка', 'Изготовление и установка', NULL),
+(8, 'Керамическая коронка', 'E-MAX, цирконий', NULL),
+(9, 'Керамический винир E-max', 'Эстетическая реставрация', NULL),
+(10, 'Металлические брекеты', 'Установка на одну челюсть', NULL),
+(11, 'Керамические брекеты', 'Эстетическая брекет-система', NULL),
+(12, 'Имплантация корейская', 'Установка имплантата с коронкой', NULL),
+(13, 'Имплантация швейцарская', 'Премиальный имплантат', NULL),
+(14, 'Отбеливание зубов', 'Кабинетное отбеливание', NULL),
+(15, 'Прием детского стоматолога', 'Консультация и осмотр детского врача', NULL),
+(16, 'Элайнеры mini-кейс', 'Выравнивание зубов элайнерами', NULL),
+(17, 'Рентген-диагностика', 'Прицельный снимок', NULL),
+(18, 'Ортопантомограмма', 'Панорамный снимок', NULL),
+(19, 'КТ челюстно-лицевой области', 'Компьютерная томография', NULL);
+
+-- 6. ЦЕНЫ НА УСЛУГИ ПО КЛИНИКАМ
+
+INSERT INTO clinic_services (clinic_id, service_id, price) VALUES
+-- Хаят смайл (4)
+(4, 2, 2500), (4, 3, 3000), (4, 6, 3000), (4, 4, 2500), (4, 5, 5000),
+(4, 12, 20000), (4, 13, 25000), (4, 10, 36300), (4, 11, 68000),
+(4, 9, 20000), (4, 14, 39999), (4, 15, 400), (4, 16, 99000),
+
+-- Булгар-Стом центр (7)
+(7, 2, 6600), (7, 3, 9000), (7, 5, 9900), (7, 8, 25000), (7, 10, 65000),
+
+-- Булгар-Стом Фэмили Стом (8)
+(8, 2, 6600), (8, 3, 9000), (8, 5, 9900), (8, 8, 25000), (8, 10, 65000),
+
+-- Занифдент (9)
+(9, 1, 0), (9, 6, 5000), (9, 9, 18000), (9, 7, 5500), (9, 4, 1000),
+
+-- Вайт Бьюти (10)
+(10, 2, 4950), (10, 10, 80000), (10, 7, 16500), (10, 13, 24000), (10, 12, 19900),
+
+-- ДИН Дентал Клиник (11)
+(11, 1, 300), (11, 4, 2000), (11, 5, 3000), (11, 7, 12000), (11, 9, 35000);
+
+-- 7. ТЕСТОВЫЕ ПОЛЬЗОВАТЕЛИ
+
+
+INSERT INTO users (name, email, password, role) VALUES
+('Администратор', 'admin@dental.ru', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5E', 'ADMIN'),
+('Иван Петров', 'ivan@example.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5E', 'PATIENT'),
+('Мария Сидорова', 'maria@example.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5E', 'PATIENT');
+
+-- 8. ТЕСТОВЫЕ ОТЗЫВЫ
+
+INSERT INTO reviews (rating, comment, patient_id, clinic_id) VALUES
+(5, 'Отличная клиника, вежливый персонал, чисто и современно', 2, 1),
+(4, 'Хорошие врачи, но дороговато', 2, 3),
+(5, 'Лучшая стоматология в городе', 3, 4),
+(4, 'Нормальная клиника, запись по времени', 3, 2),
+(5, 'Очень доволен лечением', 2, 7),
+(3, 'Долго ждал приёма, но лечение качественное', 3, 5);
+
+-- 9. ТЕСТОВЫЕ ЗАПИСИ НА ПРИЁМ
+
+INSERT INTO appointments (date_time, status, patient_id, doctor_id, clinic_id) VALUES
+('2025-05-15 10:00:00', 'CONFIRMED', 2, 1, 1),
+('2025-05-16 14:30:00', 'PENDING', 2, 11, 3),
+('2025-05-18 11:00:00', 'CONFIRMED', 3, 15, 4),
+('2025-05-20 09:00:00', 'COMPLETED', 2, 19, 5),
+('2025-05-22 15:00:00', 'CANCELLED', 3, 23, 6);
+
+-- 10. ТЕСТОВЫЕ МЕДИЦИНСКИЕ ЗАПИСИ
+
+INSERT INTO medical_records (diagnosis, notes, patient_id, doctor_id) VALUES
+('Кариес зуба 46', 'Рекомендовано лечение кариеса, установка пломбы', 2, 1),
+('Пульпит зуба 24', 'Проведено эндодонтическое лечение, рекомендована коронка', 2, 11),
+('Периодонтит', 'Назначена комплексная терапия', 3, 19),
+('Профилактический осмотр', 'Зубы здоровы, рекомендована гигиена', 2, 1);
+
+
+-- 11. ИЗБРАННЫЕ КЛИНИКИ
+
+INSERT INTO favorite_clinics (user_id, clinic_id) VALUES
+(2, 1), (2, 3), (2, 7), (3, 4), (3, 7);
+
+-- 12. СОЗДАНИЕ ИНДЕКСОВ ДЛЯ ОПТИМИЗАЦИИ
+
+CREATE INDEX IF NOT EXISTS idx_clinics_name ON clinics(name);
+CREATE INDEX IF NOT EXISTS idx_clinics_location ON clinics(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(date_time);
+CREATE INDEX IF NOT EXISTS idx_appointments_patient ON appointments(patient_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_doctor ON appointments(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_medical_records_patient ON medical_records(patient_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_clinic ON reviews(clinic_id);
+CREATE INDEX IF NOT EXISTS idx_doctors_name ON doctors(name);
+CREATE INDEX IF NOT EXISTS idx_appointments_doctor_datetime ON appointments(doctor_id, date_time);
+CREATE INDEX IF NOT EXISTS idx_appointments_patient_datetime ON appointments(patient_id, date_time);
+CREATE INDEX IF NOT EXISTS idx_appointments_clinic_datetime ON appointments(clinic_id, date_time);
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
+CREATE INDEX IF NOT EXISTS idx_appointments_datetime ON appointments(date_time);
+CREATE INDEX IF NOT EXISTS idx_appointments_doctor_status_datetime ON appointments(doctor_id, status, date_time);
+CREATE INDEX IF NOT EXISTS idx_doctors_specialization ON doctors(specialization);
+CREATE INDEX IF NOT EXISTS idx_doctors_experience ON doctors(experience);
+CREATE INDEX IF NOT EXISTS idx_clinic_doctors_clinic_id ON clinic_doctors(clinic_id);
+CREATE INDEX IF NOT EXISTS idx_clinic_doctors_doctor_id ON clinic_doctors(doctor_id);
+
+-- 13. ПРИМЕРЫ СЛОЖНЫХ ЗАПРОСОВ ДЛЯ ПРОВЕРКИ
+
+-- Подзапрос: клиники со средним рейтингом выше 4.5
+SELECT c.id, c.name, c.address,
+       (SELECT AVG(r.rating) FROM reviews r WHERE r.clinic_id = c.id) as avg_rating
+FROM clinics c
+WHERE (SELECT AVG(r.rating) FROM reviews r WHERE r.clinic_id = c.id) > 4.5;
+
+-- Клиники с количеством врачей
+SELECT c.name, COUNT(cd.doctor_id) as doctor_count
+FROM clinics c
+LEFT JOIN clinic_doctors cd ON c.id = cd.clinic_id
+GROUP BY c.id
+ORDER BY doctor_count DESC;
+
+-- Поиск ближайших клиник (по координатам)
+SELECT name, address,
+       (6371 * acos(cos(radians(55.796)) * cos(radians(latitude)) *
+        cos(radians(longitude) - radians(49.115)) + sin(radians(55.796)) *
+        sin(radians(latitude)))) AS distance_km
+FROM clinics
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+ORDER BY distance_km
+LIMIT 10;
+
+-- 14. СБРОС ПОСЛЕДОВАТЕЛЬНОСТЕЙ (SEQUENCES)
+
+SELECT setval('clinics_id_seq', (SELECT COALESCE(MAX(id), 0) FROM clinics));
+SELECT setval('doctors_id_seq', (SELECT COALESCE(MAX(id), 0) FROM doctors));
+SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 0) FROM users));
+SELECT setval('appointments_id_seq', (SELECT COALESCE(MAX(id), 0);
+
+-- Выполнить в базе данных
+ALTER TABLE users DROP CONSTRAINT users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('PATIENT', 'ADMIN', 'SUPER_ADMIN', 'CLINIC_ADMIN'));
+
+-- Минимальные изменения
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('PATIENT', 'ADMIN', 'CLINIC_ADMIN'));
+ALTER TABLE users ADD COLUMN IF NOT EXISTS managed_clinic_id BIGINT REFERENCES clinics(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_users_managed_clinic ON users(managed_clinic_id);

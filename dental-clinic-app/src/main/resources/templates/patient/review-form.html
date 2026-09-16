@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Оставить отзыв</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <form method="post" th:action="@{/patient/reviews/add/{clinicId}(clinicId=${clinicId})}" th:object="${review}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+        <h2>Ваш отзыв о клинике</h2>
+
+        <div class="form-group">
+            <label>Вы оставляете отзыв как:</label>
+            <input type="text" th:value="${patient.name}" disabled style="background:#f5f5f5;">
+        </div>
+
+        <div class="form-group">
+            <label>Оценка:</label>
+            <select id="rating" name="rating" required>
+                <option value="">Выберите оценку</option>
+                <option value="5">5 - Отлично</option>
+                <option value="4">4 - Хорошо</option>
+                <option value="3">3 - Нормально</option>
+                <option value="2">2 - Плохо</option>
+                <option value="1">1 - Ужасно</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Ваш комментарий:</label>
+            <textarea id="comment" name="comment" rows="5" placeholder="Расскажите о вашем опыте"></textarea>
+        </div>
+
+        <button type="submit" class="btn">Отправить отзыв</button>
+        <a th:href="@{/clinics/{id}(id=${clinicId})}" class="btn-cancel">Отмена</a>
+    </form>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

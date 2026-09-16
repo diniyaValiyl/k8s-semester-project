@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление клиникой</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div th:if="${success}" class="success-message" th:text="${success}"></div>
+    <div th:if="${error}" class="error-message" th:text="${error}"></div>
+
+    <h2>Управление клиникой: <span th:text="${clinic.name}"></span></h2>
+
+    <div style="margin: 20px 0;">
+        <a href="/clinic-admin/doctors" class="btn">Управление врачами</a>
+        <a href="/clinic-admin/dashboard" class="btn-cancel">Обновить</a>
+    </div>
+
+    <h3>Записи на приём</h3>
+
+    <div th:if="${appointments.empty}" class="empty-state">
+        <p>Записей не найдено</p>
+    </div>
+
+    <div th:unless="${appointments.empty}">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Дата и время</th>
+                <th>Пациент</th>
+                <th>Врач</th>
+                <th>Статус</th>
+                <th>Действие</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="appointment : ${appointments}">
+                <td th:text="${appointment.id}"></td>
+                <td th:text="${#temporals.format(appointment.dateTime, 'dd.MM.yyyy HH:mm')}"></td>
+                <td th:text="${appointment.patient.name}"></td>
+                <td th:text="${appointment.doctor.name}"></td>
+                <td>
+                        <span th:class="'status-badge status-' + ${appointment.status.name()}"
+                              th:text="${appointment.status.name() == 'PENDING' ? 'Ожидает' :
+                                        appointment.status.name() == 'CONFIRMED' ? 'Подтверждена' :
+                                        appointment.status.name() == 'COMPLETED' ? 'Завершена' : 'Отменена'}"></span>
+                </td>
+                <td>
+                    <form method="post" th:action="@{/clinic-admin/appointments/{id}/status(id=${appointment.id})}">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <select name="status">
+                            <option value="PENDING" th:selected="${appointment.status.name() == 'PENDING'}">Ожидает</option>
+                            <option value="CONFIRMED" th:selected="${appointment.status.name() == 'CONFIRMED'}">Подтверждена</option>
+                            <option value="COMPLETED" th:selected="${appointment.status.name() == 'COMPLETED'}">Завершена</option>
+                            <option value="CANCELLED" th:selected="${appointment.status.name() == 'CANCELLED'}">Отменена</option>
+                        </select>
+                        <button type="submit">Изменить</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

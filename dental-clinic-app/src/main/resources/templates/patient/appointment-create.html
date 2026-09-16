@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Запись к врачу</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div th:if="${error}" class="error-message" th:text="${error}"></div>
+    <div th:if="${success}" class="success-message" th:text="${success}"></div>
+
+    <form method="post" th:action="@{/patient/appointments/create}" th:object="${appointment}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+        <h2>Новая запись на приём</h2>
+
+        <div class="form-group">
+            <label>Клиника</label>
+            <select id="clinicId" name="clinicId" required>
+                <option value="">Выберите клинику</option>
+                <option th:each="clinic : ${clinics}"
+                        th:value="${clinic.id}"
+                        th:text="${clinic.name}"
+                        th:selected="${appointment.clinicId == clinic.id}">
+                </option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Врач</label>
+            <select id="doctorId" name="doctorId" required>
+                <option value="">Сначала выберите клинику</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Дата</label>
+            <input type="date" id="date" name="date" required>
+        </div>
+
+        <div class="form-group">
+            <label>Время</label>
+            <div id="timeSlots" class="slot-buttons">
+                <div class="info-text">Выберите клинику, врача и дату</div>
+            </div>
+            <input type="hidden" id="dateTime" name="dateTime">
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn" disabled>Записаться</button>
+        <a th:href="@{/patient/dashboard}" class="btn-cancel">Отмена</a>
+    </form>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+
+<script th:inline="javascript">
+    var doctorsByClinic = /*[[${doctorsByClinic}]]*/ {};
+    var selectedDoctorId = null;
+    var selectedClinicId = null;
+    var selectedDate = null;
+    var selectedTimeSlot = null;
+
+    function updateDoctorsList() {
+        var clinicSelect = document.getElementById('clinicId');
+        var doctorSelect = document.getElementById('doctorId');
+        selectedClinicId = clinicSelect.value;
+
+        if (!selectedClinicId) {
+            doctorSelect.innerHTML = '<option value="">Сначала выберите клинику</option>';
+            return;
+        }
+
+        var doctors = doctorsByClinic[selectedClinicId] || [];
+
+        if (doctors.length === 0) {
+            doctorSelect.innerHTML = '<option value="">В этой клинике нет врачей</option>';
+            return;
+        }
+
+        var options = '<option value="">Выберите врача</option>';
+        for (var i = 0; i < doctors.length; i++) {
+            var doctor = doctors[i];
+            var specialization = doctor.specialization || 'Стоматолог';
+            options += '<option value="' + doctor.id + '">' + doctor.name + ' - ' + specialization + '</option>';
+        }
+        doctorSelect.innerHTML = options;
+        resetTimeSlots();
+    }
+
+    function resetTimeSlots() {
+        selectedTimeSlot = null;
+        document.getElementById('dateTime').value = '';
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('timeSlots').innerHTML = '<div class="info-text">Выберите дату</div>';
+    }
+
+    function loadTimeSlots() {
+        var doctorSelect = document.getElementById('doctorId');
+        var dateInput = document.getElementById('date');
+
+        selectedDoctorId = doctorSelect.value;
+        selectedDate = dateInput.value;
+
+        if (!selectedDoctorId || !selectedDate || !selectedClinicId) {
+            return;
+        }
+
+        document.getElementById('timeSlots').innerHTML = '<div class="loading">Загрузка...</div>';
+        document.getElementById('submitBtn').disabled = true;
+
+        var url = '/api/slots?doctorId=' + selectedDoctorId + '&clinicId=' + selectedClinicId + '&date=' + selectedDate;
+
+        fetch(url)
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success && data.slots && data.slots.length > 0) {
+                    var html = '';
+                    for (var i = 0; i < data.slots.length; i++) {
+                        var slot = data.slots[i];
+                        html += '<button type="button" class="slot-btn" onclick="selectTimeSlot(\'' + slot + '\', this)">' + slot + '</button>';
+                    }
+                    document.getElementById('timeSlots').innerHTML = html;
+                } else {
+                    document.getElementById('timeSlots').innerHTML = '<div class="info-text">Нет свободного времени</div>';
+                }
+            })
+            .catch(function(error) {
+                console.error('Error loading slots:', error);
+                document.getElementById('timeSlots').innerHTML = '<div class="info-text">Ошибка загрузки</div>';
+            });
+    }
+
+    function selectTimeSlot(timeSlot, element) {
+        var buttons = document.getElementsByClassName('slot-btn');
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].classList.remove('selected');
+        }
+        element.classList.add('selected');
+        selectedTimeSlot = timeSlot;
+
+        var dateTimeStr = selectedDate + 'T' + timeSlot + ':00';
+        document.getElementById('dateTime').value = dateTimeStr;
+        document.getElementById('submitBtn').disabled = false;
+    }
+
+    document.getElementById('clinicId').addEventListener('change', updateDoctorsList);
+    document.getElementById('doctorId').addEventListener('change', function() {
+        if (this.value && document.getElementById('date').value) {
+            loadTimeSlots();
+        } else {
+            resetTimeSlots();
+        }
+    });
+    document.getElementById('date').addEventListener('change', function() {
+        if (this.value && document.getElementById('doctorId').value) {
+            loadTimeSlots();
+        } else {
+            resetTimeSlots();
+        }
+    });
+
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('date').min = today;
+
+    if (document.getElementById('clinicId').value) {
+        updateDoctorsList();
+    }
+</script>
+</body>
+</html>
