@@ -1,8 +1,12 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: app-config
+  name: backend-config
+  namespace: dental-clinic
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: dental-clinic
 data:
-  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-0.postgres.default.svc.cluster.local:5432/oris3
-  SPRING_DATASOURCE_USERNAME: postgres
+  SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+  SERVER_FORWARD_HEADERS_STRATEGY: framework
   FILE_UPLOAD_DIR: /app/uploads
