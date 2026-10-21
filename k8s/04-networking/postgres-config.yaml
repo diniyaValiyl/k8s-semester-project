@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: dental-clinic
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: dental-clinic
+data:
+  DB_HOST: postgres
+  DB_PORT: "5432"
