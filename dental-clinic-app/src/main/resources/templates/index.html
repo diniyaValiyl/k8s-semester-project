@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Dental Clinic - Стоматологическая карта</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div class="hero">
+        <h2>Найдите свою идеальную улыбку</h2>
+        <p>Поиск стоматологических клиник, запись к врачу, отзывы</p>
+        <div style="margin-top: 25px;">
+            <a th:href="@{/clinics}" class="btn">Найти клинику</a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

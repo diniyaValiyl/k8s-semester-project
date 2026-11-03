@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pod-watcher-code
+  namespace: dental-clinic
+data:
+  logger.py: |
+    import logging
+    import sys
+
+    logging.basicConfig(
+        level=logging.INFO,
+        stream=sys.stdout,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
+
+    logger = logging.getLogger(__name__)
+
+  notifier.py: |
+    import os
+    from functools import lru_cache
+
+    import requests
+
+    from logger import logger
+
+
+    class Notifier:
+        __NTFY_URL = os.environ.get("NTFY_URL", "https://ntfy.sh")
+        __NTFY_TOPIC = os.environ["NTFY_TOPIC"]
+
+        def notify(self, message: str) -> None:
+            try:
+                response = requests.post(
+                    url=f"{self.__NTFY_URL}/{self.__NTFY_TOPIC}",
+                    data=message.encode("utf-8"),
+                    headers={"Title": "Pod watcher report"},
+                    timeout=10,
+                )
+                response.raise_for_status()
+                logger.info("ntfy: отправлено")
+            except requests.RequestException as error:
+                logger.error(f"ntfy: не отправлено: {type(error).__name__}")
+
+
+    @lru_cache
+    def get_notifier() -> Notifier:
+        return Notifier()
+
+  watcher.py: |
+    import os
+
+    from kubernetes import client, config, watch
+    from kubernetes.client import V1Pod
+
+    from logger import logger
+    from notifier import get_notifier
+
+
+    class Watcher:
+        __STARTING_STATUSES = ("ContainerCreating", "PodInitializing")
+        __NAMESPACE = os.environ["POD_NAMESPACE"]
+
+        def __init__(self) -> None:
+            self.__alerted = set()
+            self.__notifier = get_notifier()
+            config.load_incluster_config()
+            self.__v1 = client.CoreV1Api()
+
+        def __get_waiting_reason(self, pod: V1Pod) -> tuple[str, str] | None:
+            init_container_statuses = pod.status.init_container_statuses or []
+            container_statuses = pod.status.container_statuses or []
+            statuses = init_container_statuses + container_statuses
+            for status in statuses:
+                state = status.state.waiting
+                if state and state.reason not in self.__STARTING_STATUSES:
+                    return state.reason, state.message or ""
+            return None
+
+        def __show(self, kind: str, pod: V1Pod) -> None:
+            name = pod.metadata.name
+            problem = self.__get_waiting_reason(pod)
+            logger.info("%s %s %s", kind, name, problem[0] if problem else "")
+            if kind == "DELETED":
+                self.__alerted.discard(name)
+                return
+            is_not_alerted = name not in self.__alerted
+            if problem and is_not_alerted and not pod.metadata.deletion_timestamp:
+                self.__alerted.add(name)
+                reason, message = problem
+                notify_message = f"{self.__NAMESPACE}/{name}: {reason}\n{message}"
+                self.__notifier.notify(notify_message)
+
+        def run(self) -> None:
+            first = True
+            while True:
+                pods = self.__v1.list_namespaced_pod(self.__NAMESPACE)
+                if first:
+                    msg = f"Слежу за подами в {self.__NAMESPACE}"
+                    self.__notifier.notify(msg)
+                    first = False
+                try:
+                    for event in watch.Watch().stream(
+                        self.__v1.list_namespaced_pod,
+                        self.__NAMESPACE,
+                        resource_version=pods.metadata.resource_version,
+                        timeout_seconds=300,
+                    ):
+                        event_type = event["type"]
+                        if event_type in ("ADDED", "MODIFIED", "DELETED"):
+                            self.__show(event_type, event["object"])
+                except client.ApiException as error:
+                    if error.status != 410:
+                        raise
+
+  main.py: |
+    from watcher import Watcher
+
+
+    def main() -> None:
+        Watcher().run()
+
+
+    if __name__ == "__main__":
+        main()

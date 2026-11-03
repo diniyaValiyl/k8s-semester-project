@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: dental-clinic
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: dental-clinic
+data:
+  SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+  SERVER_FORWARD_HEADERS_STRATEGY: framework
+  FILE_UPLOAD_DIR: /app/uploads

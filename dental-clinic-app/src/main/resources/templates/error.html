@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Ошибка</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div class="error-page" style="text-align: center; padding: 60px 20px;">
+        <h1>Что-то пошло не так</h1>
+        <p th:text="${error}" class="error-message">Произошла ошибка</p>
+        <div style="margin-top: 30px;">
+            <a th:href="@{/}" class="btn">На главную</a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

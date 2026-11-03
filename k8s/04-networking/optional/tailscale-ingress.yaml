@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dental-clinic-tailscale
+  namespace: dental-clinic
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: frontend
+      port:
+        number: 80
+  tls:
+    - hosts:
+        - dental-clinic-tailscale

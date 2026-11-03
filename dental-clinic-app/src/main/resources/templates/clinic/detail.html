@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${clinic.name}"></title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div th:if="${success}" class="success-message" th:text="${success}"></div>
+    <div th:if="${error}" class="error-message" th:text="${error}"></div>
+
+    <div class="clinic-info">
+        <img th:if="${clinic.logoUrl}" th:src="${clinic.logoUrl}" class="clinic-logo-large" alt="logo">
+        <div th:unless="${clinic.logoUrl}" class="doctor-photo-placeholder" style="width:120px; height:120px; font-size:48px;">Д</div>
+
+        <h1 th:text="${clinic.name}" style="margin-top: 15px;"></h1>
+        <p><strong>Адрес:</strong> <span th:text="${clinic.address}"></span></p>
+        <p th:if="${clinic.phone}"><strong>Телефон:</strong> <span th:text="${clinic.phone}"></span></p>
+        <p th:if="${clinic.workingHours}"><strong>Часы работы:</strong> <span th:text="${clinic.workingHours}"></span></p>
+        <p th:if="${clinic.siteUrl}"><strong>Сайт:</strong> <a th:href="${clinic.siteUrl}" target="_blank" th:text="${clinic.siteUrl}"></a></p>
+        <p><strong>Рейтинг:</strong>
+            <span class="rating" th:if="${avgRating != null and avgRating > 0}" th:text="${avgRating} + ' / 5'"></span>
+            <span th:unless="${avgRating != null and avgRating > 0}">Нет отзывов</span>
+        </p>
+    </div>
+
+    <h2>Врачи клиники</h2>
+    <div th:if="${clinic.doctors != null and !clinic.doctors.empty}" class="doctors-grid">
+        <div th:each="doctor : ${clinic.doctors}" class="doctor-card">
+            <img th:if="${doctor.photoUrl}" th:src="${doctor.photoUrl}" class="doctor-photo" alt="doctor">
+            <div th:unless="${doctor.photoUrl}" class="doctor-photo-placeholder">Д</div>
+            <h3 th:text="${doctor.name}" style="font-size: 16px; margin: 10px 0 5px;"></h3>
+            <p style="color: #4caf50; font-weight: 500;" th:text="${doctor.specialization}"></p>
+            <p th:if="${doctor.experience}" style="color: #666; font-size: 13px;" th:text="${doctor.experience} + ' лет опыта'"></p>
+        </div>
+    </div>
+    <div th:unless="${clinic.doctors != null and !clinic.doctors.empty}" class="info-section">
+        <p style="text-align: center; color: #666; padding: 20px;">Информация о врачах отсутствует</p>
+    </div>
+
+    <h2>Услуги и цены</h2>
+    <table class="services-table">
+        <thead>
+        <tr><th>Услуга</th><th>Цена</th></tr>
+        </thead>
+        <tbody>
+        <tr th:each="cs : ${services}">
+            <td th:text="${cs.service.name}"></td>
+            <td th:if="${cs.price != null}" th:text="${cs.price} + ' руб'"></td>
+            <td th:unless="${cs.price != null}" style="color: #999;">По запросу</td>
+        </tr>
+        <tr th:if="${services == null or services.empty}">
+            <td colspan="2" style="text-align: center; color: #666;">Информация об услугах отсутствует</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Отзывы пациентов</h2>
+
+    <div class="add-review">
+        <a th:if="${userEmail != null}" th:href="@{/patient/reviews/add/{clinicId}(clinicId=${clinic.id})}" class="btn btn-primary">Оставить отзыв</a>
+        <div th:unless="${userEmail != null}" class="login-message">
+            Чтобы оставить отзыв, войдите в систему
+        </div>
+    </div>
+
+    <div th:if="${reviews != null and !reviews.empty}">
+        <div th:each="review : ${reviews}" class="review-card">
+            <p><strong th:text="${review.patient.name}"></strong> — <span class="rating" th:text="${review.rating} + ' / 5'"></span></p>
+            <p th:text="${review.comment}" style="color: #444;"></p>
+            <p class="review-date" th:text="${#temporals.format(review.createdAt, 'dd.MM.yyyy')}"></p>
+        </div>
+    </div>
+    <div th:unless="${reviews != null and !reviews.empty}" class="info-section">
+        <p style="text-align: center; color: #666; padding: 20px;">Пока нет отзывов</p>
+    </div>
+
+    <div class="clinic-actions">
+        <a th:if="${userEmail != null and #authorization.expression('hasRole(''PATIENT'')')}"
+           th:href="@{/patient/appointments/create(clinicId=${clinic.id})}"
+           class="btn btn-primary">Записаться на приём</a>
+        <div th:if="${userEmail != null and #authorization.expression('hasRole(''ADMIN'')')}" class="login-message">
+            Вы вошли как администратор. Запись на приём доступна только пациентам.
+        </div>
+        <div th:unless="${userEmail != null}" class="login-message">
+            Чтобы записаться к врачу, войдите в систему
+        </div>
+        <a th:href="@{/clinics}" class="btn btn-secondary">Назад к списку</a>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>

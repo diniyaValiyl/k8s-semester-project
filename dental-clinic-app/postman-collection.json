@@ -1,0 +1,110 @@
+{
+  "info": {
+    "name": "Dental Clinic API",
+    "description": "API для стоматологической карты",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Clinics",
+      "item": [
+        {
+          "name": "GET all clinics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8085/api/clinics",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8085",
+              "path": ["api", "clinics"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET clinic by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8085/api/clinics/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8085",
+              "path": ["api", "clinics", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Distance",
+      "item": [
+        {
+          "name": "GET distance to clinic",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8085/api/distance?userLat=55.796&userLon=49.115&clinicId=1&mode=foot",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8085",
+              "path": ["api", "distance"],
+              "query": [
+                {"key": "userLat", "value": "55.796"},
+                {"key": "userLon", "value": "49.115"},
+                {"key": "clinicId", "value": "1"},
+                {"key": "mode", "value": "foot"}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET distances to all clinics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8085/api/distance/all?userLat=55.796&userLon=49.115&mode=foot",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8085",
+              "path": ["api", "distance", "all"],
+              "query": [
+                {"key": "userLat", "value": "55.796"},
+                {"key": "userLon", "value": "49.115"},
+                {"key": "mode", "value": "foot"}
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Test",
+      "item": [
+        {
+          "name": "GET test endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8085/api/test",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8085",
+              "path": ["api", "test"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

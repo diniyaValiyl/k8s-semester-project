@@ -1,0 +1,178 @@
+-- Database schema for the Dental Clinic application.
+-- Only synthetic demonstration data is stored here.
+-- User accounts, passwords, email addresses and other personal data are not seeded.
+
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('PATIENT', 'ADMIN', 'CLINIC_ADMIN')),
+    managed_clinic_id BIGINT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE clinics (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    address VARCHAR(300) NOT NULL,
+    phone VARCHAR(50),
+    hours VARCHAR(200),
+    site_url VARCHAR(200),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    logo_url VARCHAR(500),
+    work_start TIME DEFAULT '09:00',
+    work_end TIME DEFAULT '20:00',
+    work_days VARCHAR(50) DEFAULT 'MON,TUE,WED,THU,FRI',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE doctors (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    specialization VARCHAR(200),
+    experience INTEGER,
+    education TEXT,
+    photo_url VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE clinic_doctors (
+    clinic_id BIGINT NOT NULL,
+    doctor_id BIGINT NOT NULL,
+    PRIMARY KEY (clinic_id, doctor_id),
+    FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
+);
+
+CREATE TABLE dental_services (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE clinic_services (
+    clinic_id BIGINT NOT NULL,
+    service_id BIGINT NOT NULL,
+    price DECIMAL(10, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (clinic_id, service_id),
+    FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE,
+    FOREIGN KEY (service_id) REFERENCES dental_services(id) ON DELETE CASCADE
+);
+
+CREATE TABLE reviews (
+    id BIGSERIAL PRIMARY KEY,
+    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    patient_id BIGINT NOT NULL,
+    clinic_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE
+);
+
+CREATE TABLE appointments (
+    id BIGSERIAL PRIMARY KEY,
+    date_time TIMESTAMP NOT NULL,
+    status VARCHAR(20) DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED')),
+    patient_id BIGINT NOT NULL,
+    doctor_id BIGINT NOT NULL,
+    clinic_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+    FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE
+);
+
+CREATE TABLE medical_records (
+    id BIGSERIAL PRIMARY KEY,
+    diagnosis VARCHAR(300),
+    notes TEXT,
+    patient_id BIGINT NOT NULL,
+    doctor_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
+);
+
+CREATE TABLE favorite_clinics (
+    user_id BIGINT NOT NULL,
+    clinic_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, clinic_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (clinic_id) REFERENCES clinics(id) ON DELETE CASCADE
+);
+
+ALTER TABLE users
+    ADD CONSTRAINT fk_users_managed_clinic
+    FOREIGN KEY (managed_clinic_id) REFERENCES clinics(id) ON DELETE SET NULL;
+
+INSERT INTO clinics (
+    id, name, address, phone, hours, site_url,
+    latitude, longitude, logo_url, work_start, work_end, work_days
+) VALUES
+    (1, 'Демо-клиника №1', 'Учебный адрес, 1', '+7 (000) 000-00-01',
+     'Пн–Пт 09:00–20:00', 'https://example.invalid/clinic-1',
+     55.790000, 49.120000, NULL, '09:00', '20:00', 'MON,TUE,WED,THU,FRI'),
+    (2, 'Демо-клиника №2', 'Учебный адрес, 2', '+7 (000) 000-00-02',
+     'Пн–Сб 08:00–19:00', 'https://example.invalid/clinic-2',
+     55.800000, 49.130000, NULL, '08:00', '19:00', 'MON,TUE,WED,THU,FRI,SAT'),
+    (3, 'Демо-клиника №3', 'Учебный адрес, 3', '+7 (000) 000-00-03',
+     'Ежедневно 10:00–18:00', 'https://example.invalid/clinic-3',
+     55.810000, 49.140000, NULL, '10:00', '18:00', 'MON,TUE,WED,THU,FRI,SAT,SUN');
+
+INSERT INTO doctors (id, name, specialization, experience, education, photo_url) VALUES
+    (1, 'Демо-врач №1', 'Стоматолог-терапевт', 5, 'Учебная запись', NULL),
+    (2, 'Демо-врач №2', 'Стоматолог-хирург', 7, 'Учебная запись', NULL),
+    (3, 'Демо-врач №3', 'Стоматолог-ортопед', 9, 'Учебная запись', NULL);
+
+INSERT INTO clinic_doctors (clinic_id, doctor_id) VALUES
+    (1, 1),
+    (1, 2),
+    (2, 2),
+    (2, 3),
+    (3, 1),
+    (3, 3);
+
+INSERT INTO dental_services (id, name, description, price) VALUES
+    (1, 'Консультация', 'Первичный осмотр и консультация', 500.00),
+    (2, 'Лечение кариеса', 'Демонстрационная услуга', 3000.00),
+    (3, 'Профессиональная гигиена', 'Демонстрационная услуга', 2500.00),
+    (4, 'Удаление зуба', 'Демонстрационная услуга', 3500.00);
+
+INSERT INTO clinic_services (clinic_id, service_id, price) VALUES
+    (1, 1, 500.00),
+    (1, 2, 3000.00),
+    (2, 1, 600.00),
+    (2, 3, 2500.00),
+    (3, 1, 400.00),
+    (3, 4, 3500.00);
+
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_appointments_date ON appointments(date_time);
+CREATE INDEX idx_appointments_patient ON appointments(patient_id);
+CREATE INDEX idx_appointments_doctor ON appointments(doctor_id);
+CREATE INDEX idx_appointments_clinic ON appointments(clinic_id);
+CREATE INDEX idx_reviews_clinic ON reviews(clinic_id);
+CREATE INDEX idx_doctors_specialization ON doctors(specialization);
+CREATE INDEX idx_clinic_doctors_clinic ON clinic_doctors(clinic_id);
+CREATE INDEX idx_clinic_doctors_doctor ON clinic_doctors(doctor_id);
+CREATE INDEX idx_users_managed_clinic ON users(managed_clinic_id);
+
+SELECT setval('clinics_id_seq', (SELECT MAX(id) FROM clinics));
+SELECT setval('doctors_id_seq', (SELECT MAX(id) FROM doctors));
+SELECT setval('dental_services_id_seq', (SELECT MAX(id) FROM dental_services));

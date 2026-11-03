@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="header" class="header">
+    <a href="/" class="logo">Dental Clinic</a>
+    <nav class="nav">
+        <a th:href="@{/clinics}">Клиники</a>
+        <a th:href="@{/clinics/map}">Карта</a>
+
+        <div th:if="${#authorization.expression('isAuthenticated()')}" class="nav-auth">
+            <span class="user-name">[[${#authentication.name}]]</span>
+            <a th:href="@{/patient/dashboard}" th:if="${#authorization.expression('hasRole(''PATIENT'')')}">Мой кабинет</a>
+            <a th:href="@{/clinic-admin/dashboard}" th:if="${#authorization.expression('hasRole(''CLINIC_ADMIN'')')}">Управление клиникой</a>
+            <a th:href="@{/admin}" th:if="${#authorization.expression('hasRole(''ADMIN'')')}">Админ-панель</a>
+            <form method="post" th:action="@{/logout}" style="display: inline;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <a href="#" onclick="this.closest('form').submit(); return false;" style="color: #2e7d32; text-decoration: none;">Выход</a>
+            </form>
+        </div>
+
+        <div th:unless="${#authorization.expression('isAuthenticated()')}" class="nav-guest">
+            <a th:href="@{/login}">Вход</a>
+            <a th:href="@{/register}">Регистрация</a>
+        </div>
+    </nav>
+</div>
+</html>

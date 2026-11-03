@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Форма врача</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div th:if="${error}" class="error-message" th:text="${error}"></div>
+    <div th:if="${success}" class="success-message" th:text="${success}"></div>
+
+    <form method="post" th:action="@{/admin/doctors/create}" enctype="multipart/form-data" th:object="${doctorForm}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+        <h2 th:text="${doctorForm.id == null} ? 'Новый врач' : 'Редактирование врача'"></h2>
+
+        <input type="hidden" th:field="*{id}">
+
+        <div class="form-group">
+            <label>ФИО врача</label>
+            <input type="text" th:field="*{name}" required>
+            <div th:if="${#fields.hasErrors('name')}" class="field-error" th:errors="*{name}"></div>
+        </div>
+
+        <div class="form-group">
+            <label>Специализация</label>
+            <input type="text" th:field="*{specialization}" placeholder="Стоматолог-терапевт">
+        </div>
+
+        <div class="form-group">
+            <label>Опыт работы (лет)</label>
+            <input type="number" th:field="*{experience}" min="0" max="70" step="1">
+        </div>
+
+        <div class="form-group">
+            <label>Образование</label>
+            <textarea th:field="*{education}" rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Клиники, в которых работает врач</label>
+            <div class="clinics-list">
+                <div th:each="clinic : ${allClinics}" class="clinic-checkbox">
+                    <input type="checkbox" name="clinicIds" th:value="${clinic.id}" th:checked="${selectedClinicIds != null and selectedClinicIds.contains(clinic.id)}">
+                    <label style="margin:0; font-weight:normal;" th:text="${clinic.name}"></label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Фото</label>
+            <input type="file" name="photo" accept="image/jpeg,image/png,image/jpg">
+            <div class="info-text">Оставьте пустым, чтобы сохранить текущее фото</div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit">Сохранить</button>
+            <a th:href="@{/admin/doctors}" class="btn-cancel">Отмена</a>
+        </div>
+    </form>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+
+<script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+        var name = document.querySelector('[name="name"]').value.trim();
+        if (name === '') {
+            alert('Введите ФИО врача');
+            e.preventDefault();
+        }
+    });
+</script>
+</body>
+</html>

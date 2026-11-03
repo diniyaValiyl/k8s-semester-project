@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление записями</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div th:if="${success}" class="success-message" th:text="${success}"></div>
+    <div th:if="${error}" class="error-message" th:text="${error}"></div>
+
+    <div class="filter-group">
+        <div class="filter-item">
+            <label>Клиника</label>
+            <select id="clinicFilter">
+                <option value="">Все клиники</option>
+                <option th:each="clinic : ${clinics}"
+                        th:value="${clinic.id}"
+                        th:text="${clinic.name}"
+                        th:selected="${selectedClinicId != null and selectedClinicId == clinic.id}">
+                </option>
+            </select>
+        </div>
+        <div class="filter-item">
+            <label>Статус</label>
+            <select id="statusFilter">
+                <option value="">Все статусы</option>
+                <option value="PENDING" th:selected="${selectedStatus == 'PENDING'}">Ожидает</option>
+                <option value="CONFIRMED" th:selected="${selectedStatus == 'CONFIRMED'}">Подтверждена</option>
+                <option value="CANCELLED" th:selected="${selectedStatus == 'CANCELLED'}">Отменена</option>
+                <option value="COMPLETED" th:selected="${selectedStatus == 'COMPLETED'}">Завершена</option>
+            </select>
+        </div>
+        <div class="filter-item">
+            <button class="btn-filter" onclick="applyFilters()">Применить</button>
+            <a href="/admin/appointments" class="btn-reset">Сбросить</a>
+        </div>
+    </div>
+
+    <h2>Записи на приём</h2>
+
+    <div th:if="${appointments.empty}" class="empty-state">
+        <p>Записей не найдено</p>
+    </div>
+
+    <div th:unless="${appointments.empty}">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Дата и время</th>
+                <th>Пациент</th>
+                <th>Email</th>
+                <th>Врач</th>
+                <th>Клиника</th>
+                <th>Статус</th>
+                <th>Действие</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="appointment : ${appointments}">
+                <td th:text="${appointment.id}"></td>
+                <td th:text="${#temporals.format(appointment.dateTime, 'dd.MM.yyyy HH:mm')}"></td>
+                <td th:text="${appointment.patient.name}"></td>
+                <td th:text="${appointment.patient.email}"></td>
+                <td th:text="${appointment.doctor.name}"></td>
+                <td th:text="${appointment.clinic.name}"></td>
+                <td>
+                        <span th:class="'status-badge status-' + ${appointment.status.name()}"
+                              th:text="${appointment.status.name() == 'PENDING' ? 'Ожидает' :
+                                        appointment.status.name() == 'CONFIRMED' ? 'Подтверждена' :
+                                        appointment.status.name() == 'COMPLETED' ? 'Завершена' : 'Отменена'}"></span>
+                </td>
+                <td>
+                    <form method="post" th:action="@{/admin/appointments/{id}/status(id=${appointment.id})}">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <select name="status" class="status-select-sm">
+                            <option value="PENDING" th:selected="${appointment.status.name() == 'PENDING'}">Ожидает</option>
+                            <option value="CONFIRMED" th:selected="${appointment.status.name() == 'CONFIRMED'}">Подтверждена</option>
+                            <option value="COMPLETED" th:selected="${appointment.status.name() == 'COMPLETED'}">Завершена</option>
+                            <option value="CANCELLED" th:selected="${appointment.status.name() == 'CANCELLED'}">Отменена</option>
+                        </select>
+                        <button type="submit" class="btn-sm">Изменить</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+
+<script>
+    function applyFilters() {
+        var clinicId = document.getElementById('clinicFilter').value;
+        var status = document.getElementById('statusFilter').value;
+        var url = '/admin/appointments?';
+        if (clinicId) url += 'clinicId=' + clinicId + '&';
+        if (status) url += 'status=' + status;
+        window.location.href = url;
+    }
+</script>
+</body>
+</html>

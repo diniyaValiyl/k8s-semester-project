@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-headless
+  namespace: networking-practice
+spec:
+  clusterIP: None
+  selector:
+    app: db
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

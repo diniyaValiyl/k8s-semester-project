@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Мой кабинет</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <div th:if="${success}" class="success-message" th:text="${success}"></div>
+    <div th:if="${error}" class="error-message" th:text="${error}"></div>
+
+    <div style="margin: 20px 0; padding: 20px; background: #e8f5e9; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <div>
+            <h2>Здравствуйте, <span th:text="${patient.name}"></span>!</h2>
+            <p style="margin: 5px 0 0 0; color: #2e7d32;">Рады видеть вас в Dental Clinic</p>
+        </div>
+        <a th:href="@{/patient/appointments/create}" class="btn" style="margin-top: 10px;">Записаться к врачу</a>
+    </div>
+
+    <h3>Мои записи</h3>
+
+    <div th:if="${appointments.empty}" class="empty-state">
+        <p>У вас пока нет записей</p>
+        <a th:href="@{/patient/appointments/create}" class="btn" style="margin-top: 15px; display: inline-block;">Создать запись</a>
+    </div>
+
+    <div th:each="appointment : ${appointments}" class="appointment-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <span class="clinic-name" th:text="${appointment.clinic.name}"></span>
+            <span th:if="${appointment.status.name() == 'PENDING'}" class="status-badge status-ожидает">Ожидает</span>
+            <span th:if="${appointment.status.name() == 'CONFIRMED'}" class="status-badge status-подтверждена">Подтверждена</span>
+            <span th:if="${appointment.status.name() == 'CANCELLED'}" class="status-badge status-отменена">Отменена</span>
+            <span th:if="${appointment.status.name() == 'COMPLETED'}" class="status-badge status-завершена">Завершена</span>
+        </div>
+
+        <div class="appointment-details">
+            <div><span class="detail-label">Врач:</span> <span th:text="${appointment.doctor.name}"></span></div>
+            <div><span class="detail-label">Специализация:</span> <span th:text="${appointment.doctor.specialization} ?: 'Стоматолог'"></span></div>
+            <div><span class="detail-label">Дата и время:</span> <span th:text="${#temporals.format(appointment.dateTime, 'dd.MM.yyyy HH:mm')}"></span></div>
+            <div><span class="detail-label">Телефон клиники:</span>
+                <span th:if="${appointment.clinic.phone}" th:text="${appointment.clinic.phone}"></span>
+                <span th:unless="${appointment.clinic.phone}">Не указан</span>
+            </div>
+        </div>
+
+        <div th:if="${appointment.status.name() == 'PENDING'}" style="margin-top: 10px; padding: 8px 12px; background: #fff3e0; border-radius: 8px; border-left: 3px solid #ff9800;">
+            <strong>Ожидает подтверждения</strong><br>
+            Для подтверждения записи позвоните в клинику по телефону
+            <span th:if="${appointment.clinic.phone}" th:text="${appointment.clinic.phone}"></span>
+            <span th:unless="${appointment.clinic.phone}">выбранной клиники</span>
+        </div>
+
+        <div th:if="${appointment.status.name() == 'CONFIRMED'}" style="margin-top: 10px; padding: 8px 12px; background: #e8f5e9; border-radius: 8px; border-left: 3px solid #4caf50;">
+            <strong>Запись подтверждена!</strong> Пожалуйста, приходите в назначенное время.
+        </div>
+
+        <div th:if="${appointment.status.name() == 'COMPLETED'}" style="margin-top: 10px; padding: 8px 12px; background: #e3f2fd; border-radius: 8px; border-left: 3px solid #2196f3;">
+            <strong>Прием завершен.</strong>
+            <a th:href="@{/patient/reviews/add/{clinicId}(clinicId=${appointment.clinic.id})}"> Оставить отзыв о клинике</a>
+        </div>
+
+        <div th:if="${appointment.status.name() == 'PENDING' or appointment.status.name() == 'CONFIRMED'}" style="margin-top: 10px;">
+            <a th:href="@{/patient/appointments/cancel/{id}(id=${appointment.id})}"
+               class="btn-cancel"
+               onclick="return confirm('Вы уверены, что хотите отменить запись?')"
+               style="background-color: #f44336; padding: 6px 12px; font-size: 12px;">
+                Отменить запись
+            </a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+</body>
+</html>
