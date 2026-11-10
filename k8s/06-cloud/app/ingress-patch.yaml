@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dental-clinic
+  namespace: dental-clinic
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: null
+    cert-manager.io/cluster-issuer: yc-clusterissuer
+    external-dns.alpha.kubernetes.io/ttl: "300"
+    gwin.yandex.cloud/groupName: dental-clinic
+    gwin.yandex.cloud/externalIPv4Address: auto
+    gwin.yandex.cloud/securityGroups: replace-with-alb-security-group-id
+    gwin.yandex.cloud/subnets: replace-with-subnet-id
+    gwin.yandex.cloud/logs.disable: "true"
+spec:
+  ingressClassName: gwin-default
+  tls:
+    - hosts:
+        - dental.example.com
+        - api.dental.example.com
+      secretName: dental-cloud-tls
+  rules:
+    - host: dental.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+    - host: api.dental.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8085

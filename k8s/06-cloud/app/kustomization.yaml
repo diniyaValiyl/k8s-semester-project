@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../05-securityh
+patches:
+  - path: ingress-patch.yaml
+  - path: workloads-patch.yaml
+  - path: frontend-config-patch.yaml
+  - patch: |-
+      $patch: delete
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: selfsigned-cluster-issuer
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: postgres-secret
+        namespace: dental-clinic
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: backend-secret
+        namespace: dental-clinic
+images:
+  - name: dental-clinic-app
+    newName: cr.yandex/replace-with-registry-id/dental-clinic-app
+    newTag: 1.0.0
+  - name: dental-clinic-db-init
+    newName: cr.yandex/replace-with-registry-id/dental-clinic-db-init
+    newTag: 1.0.0

@@ -58,3 +58,11 @@ security/*.crt
 kubeconfig*
 *.kubeconfig
 .env.k8s
+
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfplan
+*-key.json
+.tools/
