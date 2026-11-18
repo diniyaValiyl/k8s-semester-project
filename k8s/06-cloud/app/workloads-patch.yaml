@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: dental-clinic
+spec:
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      containers:
+        - name: backend
+          env:
+            - name: SERVER_SERVLET_SESSION_COOKIE_SECURE
+              value: "true"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backend-uploads
+  namespace: dental-clinic
+spec:
+  storageClassName: yc-network-hdd
+  resources:
+    requests:
+      storage: 4Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: dental-clinic
+spec:
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: yc-network-hdd
+        resources:
+          requests:
+            storage: 4Gi

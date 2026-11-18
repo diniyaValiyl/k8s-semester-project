@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager-dns-space
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: externaldns-space
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gwin-space
