@@ -1,0 +1,16 @@
+.git
+.tools
+secrets
+**/.terraform
+**/*.tfstate*
+**/*.tfplan
+**/*.tfvars
+**/.env
+**/.env.*
+**/*.env
+**/*-key.json
+**/*.key
+**/*.kubeconfig
+**/target
+**/uploads
+*.zip
