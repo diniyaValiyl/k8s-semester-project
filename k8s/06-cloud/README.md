@@ -4,9 +4,18 @@
 Инфраструктура описана OpenTofu. cert-manager, ExternalDNS и Gwin устанавливаются
 через Marketplace в консоли Yandex Cloud, как требуется в задании.
 
-Код подготовлен для запуска. Облачные ресурсы ещё не созданы: для этого нужны
-личный аккаунт, активный грант, одобренная квота и купленный домен.
-Проверки без аккаунта и проверки настоящего развёртывания перечислены отдельно ниже.
+Для проекта зарегистрирован домен `dental-clinic-study.ru`; публичный DNS уже
+возвращает `ns1.yandexcloud.net` и `ns2.yandexcloud.net`. HDD-квота в ru-central1-a
+увеличена до 80 ГБ. Инфраструктура создана через OpenTofu: Kubernetes 1.35,
+один Ready-узел, сеть, Container Registry и сервисные аккаунты.
+
+PostgreSQL, backend и frontend развёрнуты в `dental-clinic`. Оба PVC по 4 ГБ
+имеют статус Bound. Проверены страницы и API через NodePort внутри облачной сети,
+а также сохранность записи после пересоздания PostgreSQL-пода.
+
+Внешний HTTPS пока не настроен: ожидается установка трёх приложений Marketplace.
+Ingress уже создан, но ADDRESS, A-записи приложения и сертификат пока отсутствуют.
+Эта часть задания ещё не считается выполненной.
 
 ## Как устроено решение
 
@@ -22,8 +31,8 @@ StatefulSet с headless Service, backend и frontend — Deployment с NodePort 
 При обновлении backend используется Recreate: сначала завершается старый Pod,
 потом новый подключает тот же облачный RWO-диск загрузок.
 
-Один Ingress содержит два домена: `dental.<ваш-домен>` для frontend
-и `api.dental.<ваш-домен>` для backend. Оба используют один ALB и один TLS Secret.
+Один Ingress содержит два домена: `dental-clinic-study.ru` для frontend
+и `api.dental-clinic-study.ru` для backend. Оба используют один ALB и один TLS Secret.
 
 1. cert-manager видит `yc-clusterissuer` в аннотации Ingress, подтверждает домены
    через DNS01 и записывает сертификат в Secret `dental-cloud-tls`.
@@ -59,6 +68,20 @@ node group указывает минимум 64 ГБ. Обновление уз�
 `k8s.cluster-api.cluster-admin`; облачная роль `k8s.admin` сама их не заменяет.
 
 Все команды ниже — PowerShell из корня репозитория, если явно не указано иное.
+
+В этой рабочей копии CLI установлены в локальную папку `.tools`, а авторизация
+и облачный kubeconfig находятся в игнорируемой папке `secrets`. Для нового терминала:
+
+```powershell
+$env:PATH = "$PWD\.tools\yc;$PWD\.tools\tofu;$env:PATH"
+$env:YC_CONFIG_PATH = "$PWD\secrets\yc-config.yaml"
+$env:KUBECONFIG = "$PWD\secrets\cloud.kubeconfig"
+```
+
+Из текущей сети прямое соединение с Kubernetes API не установилось: TLS timeout.
+Для применения и проверки использована временная административная VM внутри VPC.
+Ограничение внешнего API по `admin_cidr` сохранено, VPN на компьютере не отключался.
+После проверок временная VM, её загрузочный диск и подсеть удалены.
 
 ```powershell
 yc init
@@ -169,6 +192,24 @@ dental-cloud-tls -n dental-clinic`, если staging-сертификат уже
 Все три приложения используют один каталог, в котором находятся кластер и DNS-зона.
 Namespace по умолчанию при установке не используйте.
 
+При установке через `yc k8s marketplace helm-release install` нужен
+`--product-version-id` со страницы установки в консоли. Это ID конкретной версии,
+а не ID продукта и не строка версии Helm-чарта. Ключ передавайте через
+`--value-from-file`, чтобы содержимое файла не попадало в аргументы команды.
+
+Проверены параметры опубликованных чартов:
+
+| Приложение | Версия чарта | Значения для CLI Marketplace |
+| --- | --- | --- |
+| cert-manager | 1.0.12 | config.folder_id, config.email, config.server, config.auth.json из файла |
+| ExternalDNS с Webhook | 1.20.0-yc | yc.folderId, yc.iam.key из файла; sources=[ingress], domainFilters=[dental-clinic-study.ru], txtOwnerId=dental-clinic, policy=upsert-only |
+| Gwin | v1.12.0 | controller.folderId, controller.ycServiceAccount.secret.value из файла |
+
+У нового ExternalDNS параметры `config.folder_id` и `config.auth.json` из старого
+примера не подходят: используются `yc.folderId` и `yc.iam.key`.
+CRD cert-manager включены в официальный Marketplace-чарт в каталог `crds`
+и устанавливаются вместе с приложением перед созданием ClusterIssuer.
+
 ```powershell
 kubectl get pods -n cert-manager-dns-space
 kubectl get pods -n externaldns-space
@@ -197,17 +238,16 @@ docker push "cr.yandex/$RegistryId/dental-clinic-db-init:1.0.0"
 
 ## 6. Параметры манифестов и Secret
 
-В `app/kustomization.yaml` замените `replace-with-registry-id` на RegistryId
-в обоих `newName`.
+В `app/kustomization.yaml` и `app/ingress-patch.yaml` уже указаны настоящие значения
+для текущего проекта. При создании ресурсов заново сверяйте их с `tofu output`:
 
-В `app/ingress-patch.yaml` замените:
-
-| Пример | Настоящее значение |
+| Поле | Значение текущего проекта |
 | --- | --- |
-| dental.example.com | dental.ВАШ-ДОМЕН |
-| api.dental.example.com | api.dental.ВАШ-ДОМЕН |
-| replace-with-alb-security-group-id | AlbSgId |
-| replace-with-subnet-id | SubnetId |
+| RegistryId в обоих newName | crpra4o2kp7d1rqn1pvc |
+| Домен frontend | dental-clinic-study.ru |
+| Домен backend | api.dental-clinic-study.ru |
+| gwin.yandex.cloud/securityGroups | enph091kkkuonj7hiani |
+| gwin.yandex.cloud/subnets | e9bb56gpvrr8o59ugsqh |
 
 Домены нужно заменить и в `rules`, и в `tls.hosts`.
 Не меняйте `tls.secretName` на ID сертификата: в этом ДЗ Secret выпускает cert-manager,
@@ -221,7 +261,7 @@ Copy-Item .\k8s\06-cloud\app\backend.env.example .\k8s\06-cloud\app\backend.env
 В postgres.env задайте новый пароль PostgreSQL. В backend.env укажите Google OAuth
 параметры, если используете вход через Google. Заглушки позволяют запустить приложение,
 но сам Google-вход с ними работать не будет. Для него добавьте в настройках OAuth
-redirect URI `https://dental.ВАШ-ДОМЕН/login/oauth2/code/google`.
+redirect URI `https://ВАШ-ДОМЕН/login/oauth2/code/google`.
 
 ```powershell
 kubectl apply -f .\k8s\05-securityh\namespace.yaml
@@ -257,10 +297,10 @@ yc alb load-balancer list --folder-id $FolderId
 yc certificate-manager certificate list --folder-id $FolderId
 $DnsZoneId = tofu -chdir=k8s/06-cloud/infra output -raw dns_zone_id
 yc dns zone list-records $DnsZoneId
-Resolve-DnsName "dental.$Domain" -Type A -Server 1.1.1.1
-Resolve-DnsName "api.dental.$Domain" -Type A -Server 1.1.1.1
-curl.exe --noproxy "*" -I "https://dental.$Domain"
-curl.exe --noproxy "*" "https://api.dental.$Domain/api/test"
+Resolve-DnsName $Domain -Type A -Server 1.1.1.1
+Resolve-DnsName "api.$Domain" -Type A -Server 1.1.1.1
+curl.exe --noproxy "*" -I "https://$Domain"
+curl.exe --noproxy "*" "https://api.$Domain/api/test"
 ```
 
 Обе A-записи должны указывать на ADDRESS Ingress, Certificate должен быть Ready=True,
@@ -292,7 +332,7 @@ yc load-balancer network-load-balancer list --folder-id $FolderId
 Дождитесь удаления ALB и его дочерних ресурсов. OpenTofu их не создавал и не может
 правильно удалить вместо контроллера. В списках могут быть чужие ресурсы — проверяйте
 их принадлежность этой работе. При политике upsert-only ExternalDNS может оставить
-A/TXT-записи; удалите только записи `dental.<домен>` и `api.dental.<домен>` этой работы.
+A/TXT-записи; удалите только записи `<домен>` и `api.<домен>` этой работы.
 
 Сохраните данные БД и загруженные файлы, если они нужны. Затем в облачном контексте:
 
@@ -335,7 +375,23 @@ ALB/NLB, Certificate Manager, DNS и Registry. Сертификат, загру�
 При подготовке выполнены OpenTofu fmt/validate с провайдером Yandex 0.244.0,
 строгая проверка всех 12 объектов через kubeconform по схемам Kubernetes 1.34.0
 и проверка связей Service, Deployment, ConfigMap, Secret и Ingress.
-Реальная облачная установка и выдача сертификата пока не проверялись.
+В облаке выполнены server dry-run и apply всех ресурсов приложения. PostgreSQL,
+backend и frontend получили Ready=True, backend вернул status=ok, запрос к БД
+вернул три демонстрационные клиники. Через NodePort проверены `/`, `/login`,
+`/register`, `/api/test` и `/api/clinics`: все ответы HTTP 200.
+
+Для проверки PVC создана таблица `cloud_persistence_check` с записью
+`id=1, marker=cloud-pvc-check`. После `kubectl delete pod postgres-0` UID пода
+изменился, UID PVC остался прежним, запись сохранилась. Backend после перезапуска
+БД снова успешно выполнил запрос `/api/clinics`.
+
+Отдельно проверен `kubectl port-forward` для PostgreSQL, backend и frontend.
+PostgreSQL ответил по своему протоколу, backend вернул три клиники,
+frontend через свой прокси вернул `status=ok`. Проверки выполнялись из временной VM,
+порты слушали только `127.0.0.1` и были закрыты после завершения.
+
+Выдача сертификата, загрузка его в Certificate Manager, создание ALB и A/TXT-записей
+ещё не проверены: эти проверки выполняются после установки Marketplace-приложений.
 
 ## Материалы
 

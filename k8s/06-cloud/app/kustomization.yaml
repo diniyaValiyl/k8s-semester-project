@@ -28,8 +28,8 @@ patches:
         namespace: dental-clinic
 images:
   - name: dental-clinic-app
-    newName: cr.yandex/replace-with-registry-id/dental-clinic-app
+    newName: cr.yandex/crpra4o2kp7d1rqn1pvc/dental-clinic-app
     newTag: 1.0.0
   - name: dental-clinic-db-init
-    newName: cr.yandex/replace-with-registry-id/dental-clinic-db-init
+    newName: cr.yandex/crpra4o2kp7d1rqn1pvc/dental-clinic-db-init
     newTag: 1.0.0
